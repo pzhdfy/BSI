@@ -1,17 +1,17 @@
 // Roaring64BitmapSliceIndex
+//来源：https://github.com/goldenbean/BSI/blob/main/roaring64bsi.hh
 
 #ifndef INCLUDE_ROARING_64_BITMAP_SLICE_INDEX_HH_
 #define INCLUDE_ROARING_64_BITMAP_SLICE_INDEX_HH_
 
 #include <fmt/format.h>
-#include <roaring/portability.h>
 
 #include <bit>
 #include <iostream>
+#include <sstream>
 #include <memory>
 #include <optional>
-#include <roaring/roaring.hh>
-#include <roaring/roaring64map.hh>
+#include "roaring.hh"
 #include <tuple>
 #include <vector>
 
@@ -512,6 +512,10 @@ class Roaring64Bsi {
 
   auto hasRunCompression() const -> bool const { return runOptimized_; }
 
+  [[nodiscard]] auto clone() const -> Roaring64BsiPtr {
+    return std::make_unique<Roaring64Bsi>(*this);
+  }
+
  private:
   void clear() {
     existenceBitMap_.clear();
@@ -602,10 +606,6 @@ class Roaring64Bsi {
     }
 
     return value;
-  }
-
-  [[nodiscard]] auto clone() const -> Roaring64BsiPtr {
-    return std::make_unique<Roaring64Bsi>(*this);
   }
 
   void addDigit(const Roaring64Map& foundSet, size_t i) {
