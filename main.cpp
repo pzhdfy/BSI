@@ -2,10 +2,23 @@
 #include <cstdint>
 #include <iostream>
 #include <cassert>
+#include <string>
 #include <unordered_map>
 #include <vector>
 #include <ranges>
 #include "roaring.hh" // the amalgamated roaring.hh includes roaring64map.hh
+#include "BitmapExpressionTokens.h"
+#include "IParser.h"
+#include "ParserBitmapExpression.h"
+
+namespace DB
+{
+
+class IAST;
+using ASTPtr = std::shared_ptr<IAST>;
+using ASTs = std::vector<ASTPtr>;
+
+}
 
 //测试代码参考java实现：https://github.com/RoaringBitmap/RoaringBitmap/blob/master/bsi/src/test/java/org/roaringbitmap/bsi/R64BSITest.java
 
@@ -570,6 +583,20 @@ int main()
     testIssue753();
     testIssue755();
     std::cout << "All tests passed!" << std::endl;
+
+    std::string expression = "((age=18)|(age=20))";
+    const char * begin = expression.data();
+    const char * end = expression.data() + expression.size();
+    DB::BitmapExpressionTokens tokens(begin, end, 1073741824);
+    DB::IParser::Pos token_iterator(tokens, 10000);
+    DB::Expected expected;
+    DB::ASTPtr res;
+
+    DB::ParserBitmapExpression parser;
+    if (!parser.getBitmapExpression(token_iterator, res, expected))
+    {
+        throw DB::Exception("bitmap expression logic error");
+    }
 
     return 0;
 }

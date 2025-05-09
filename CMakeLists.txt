@@ -5,10 +5,10 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)  # 这一句很关键！
 
+file(GLOB SOURCES "*.c" "*.cpp")
 # 添加源码
 add_executable(main
-    main.cpp
-    roaring.c
+${SOURCES}
 )
 
 # 包含当前目录的头文件
