@@ -47,6 +47,9 @@ class IAST;
 using ASTPtr = std::shared_ptr<IAST>;
 using ASTs = std::vector<ASTPtr>;
 
+using UUID = __uint128_t;
+const UUID Nil{};
+
 enum class IdentifierQuotingStyle
 {
     None,            /// Write as-is, without quotes.

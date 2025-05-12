@@ -21,7 +21,7 @@ class ASTIdentifier : public ASTWithAlias
 {
     friend class ReplaceQueryParameterVisitor;
 public:
-    //UUID uuid = UUIDHelpers::Nil;
+    UUID uuid = DB::Nil;
 
     explicit ASTIdentifier(const String & short_name, ASTPtr && name_param = {});
     explicit ASTIdentifier(std::vector<String> && name_parts, bool special = false, std::vector<ASTPtr> && name_params = {});
@@ -50,7 +50,7 @@ public:
     void restoreTable();  // TODO(ilezhankin): get rid of this
 
     // FIXME: used only when it's needed to rewrite distributed table name to real remote table name.
-    void resetTable(const String & database_name, const String & table_name);  // TODO(ilezhankin): get rid of this
+    //void resetTable(const String & database_name, const String & table_name);  // TODO(ilezhankin): get rid of this
 
     void updateTreeHashImpl(SipHash & hash_state) const override;
 
@@ -67,23 +67,23 @@ private:
     std::shared_ptr<IdentifierSemanticImpl> semantic; /// pimpl
 
     friend struct IdentifierSemantic;
-    friend ASTPtr createTableIdentifier(const StorageID & table_id);
+    //friend ASTPtr createTableIdentifier(const StorageID & table_id);
     friend void setIdentifierSpecial(ASTPtr & ast);
-    friend StorageID getTableIdentifier(const ASTPtr & ast);
+    //(const ASTPtr & ast);
 
     void resetFullName();
 };
 
 /// ASTIdentifier Helpers: hide casts and semantic.
 
-ASTPtr createTableIdentifier(const String & database_name, const String & table_name);
-ASTPtr createTableIdentifier(const StorageID & table_id);
+//ASTPtr createTableIdentifier(const String & database_name, const String & table_name);
+//ASTPtr createTableIdentifier(const StorageID & table_id);
 void setIdentifierSpecial(ASTPtr & ast);
 
 String getIdentifierName(const IAST * ast);
 std::optional<String> tryGetIdentifierName(const IAST * ast);
 bool tryGetIdentifierNameInto(const IAST * ast, String & name);
-StorageID getTableIdentifier(const ASTPtr & ast);
+//StorageID getTableIdentifier(const ASTPtr & ast);
 
 inline String getIdentifierName(const ASTPtr & ast) { return getIdentifierName(ast.get()); }
 inline std::optional<String> tryGetIdentifierName(const ASTPtr & ast) { return tryGetIdentifierName(ast.get()); }

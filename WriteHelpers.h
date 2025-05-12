@@ -8,6 +8,14 @@
 #include <sstream>
 
 #include "find_symbols.h"
+#include "extended_types.h"
+
+
+/** Writes a C-string without creating a temporary object. If the string is a literal, then `strlen` is executed at the compilation stage.
+  * Use when the string is a literal.
+  */
+#define writeCString(s, buf) \
+  (buf).write((s), strlen(s))
 
 inline void writeString(const char * data, size_t size, std::ostringstream & buf)
 {
@@ -135,3 +143,61 @@ inline void writeBackQuotedStringMySQL(const std::string & s, std::ostringstream
 }
 
 void writePointerHex(const void * ptr, std::ostringstream & buf);
+
+
+/// Methods for outputting the value in text form for a tab-separated format.
+template <typename T>
+inline std::enable_if_t<is_integer_v<T>, void>
+writeText(const T & x, std::ostringstream & buf) { buf<<x; }
+
+template <typename T>
+inline std::enable_if_t<std::is_floating_point_v<T>, void>
+writeText(const T & x, std::ostringstream & buf) { buf<<x; }
+
+inline void writeText(const String & x, std::ostringstream & buf) { writeString(x.c_str(), x.size(), buf); }
+
+inline void writeBoolText(bool x, std::ostringstream & buf)
+{
+    writeChar(x ? '1' : '0', buf);
+}
+
+/// Implemented as template specialization (not function overload) to avoid preference over templates on arithmetic types above.
+template <> inline void writeText<bool>(const bool & x, std::ostringstream & buf) { writeBoolText(x, buf); }
+
+/// unlike the method for std::string
+/// assumes here that `x` is a null-terminated string.
+inline void writeText(const char * x, std::ostringstream & buf) { writeCString(x, buf); }
+inline void writeText(const char * x, size_t size, std::ostringstream & buf) { writeString(x, size, buf); }
+
+
+/// String, date, datetime are in single quotes with C-style escaping. Numbers - without.
+template <typename T>
+inline std::enable_if_t<is_arithmetic_v<T>, void>
+writeQuoted(const T & x, std::ostringstream & buf) { writeText(x, buf); }
+
+inline void writeQuotedString(const String & s, std::ostringstream & buf)
+{
+    writeAnyQuotedString<'\''>(s, buf);
+}
+
+inline void writeQuoted(const String & x, std::ostringstream & buf) { writeQuotedString(x, buf); }
+
+
+
+/// String, date, datetime are in double quotes with C-style escaping. Numbers - without.
+template <typename T>
+inline std::enable_if_t<is_arithmetic_v<T>, void>
+writeDoubleQuoted(const T & x, std::ostringstream & buf) { writeText(x, buf); }
+
+inline void writeDoubleQuoted(const String & x, std::ostringstream & buf) { writeDoubleQuotedString(x, buf); }
+
+//inline void writeDoubleQuoted(const std::string_view & x, std::ostringstream & buf) { writeDoubleQuotedString(x, buf); }
+
+/// An easy-to-use method for converting something to a string in text form.
+template <typename T>
+inline String toString(const T & x)
+{
+    std::ostringstream buf;
+    writeText(x, buf);
+    return buf.str();
+}

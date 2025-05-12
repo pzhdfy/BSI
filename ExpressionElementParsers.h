@@ -7,67 +7,67 @@ namespace DB
 {
 
 
-class ParserArray : public IParserBase
-{
-protected:
-    const char * getName() const override { return "array"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserArray : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "array"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 
 /** If in parenthesis an expression from one element - returns this element in `node`;
   *  or if there is a SELECT subquery in parenthesis, then this subquery returned in `node`;
   *  otherwise returns `tuple` function from the contents of brackets.
   */
-class ParserParenthesisExpression : public IParserBase
-{
-protected:
-    const char * getName() const override { return "parenthesized expression"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserParenthesisExpression : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "parenthesized expression"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 
 /** The SELECT subquery is in parenthesis.
   */
-class ParserSubquery : public IParserBase
-{
-protected:
-    const char * getName() const override { return "SELECT subquery"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserSubquery : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "SELECT subquery"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 
 /** An identifier, for example, x_yz123 or `something special`
   * If allow_query_parameter_ = true, also parses substitutions in form {name:Identifier}
   */
-class ParserIdentifier : public IParserBase
-{
-public:
-    explicit ParserIdentifier(bool allow_query_parameter_ = false) : allow_query_parameter(allow_query_parameter_) {}
-protected:
-    const char * getName() const override { return "identifier"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-    bool allow_query_parameter;
-};
+// class ParserIdentifier : public IParserBase
+// {
+// public:
+//     explicit ParserIdentifier(bool allow_query_parameter_ = false) : allow_query_parameter(allow_query_parameter_) {}
+// protected:
+//     const char * getName() const override { return "identifier"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+//     bool allow_query_parameter;
+// };
 
 
 /** An identifier, possibly containing a dot, for example, x_yz123 or `something special` or Hits.EventTime,
  *  possibly with UUID clause like `db name`.`table name` UUID 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
   */
-class ParserCompoundIdentifier : public IParserBase
-{
-public:
-    explicit ParserCompoundIdentifier(bool table_name_with_optional_uuid_ = false, bool allow_query_parameter_ = false)
-        : table_name_with_optional_uuid(table_name_with_optional_uuid_), allow_query_parameter(allow_query_parameter_)
-    {
-    }
+// class ParserCompoundIdentifier : public IParserBase
+// {
+// public:
+//     explicit ParserCompoundIdentifier(bool table_name_with_optional_uuid_ = false, bool allow_query_parameter_ = false)
+//         : table_name_with_optional_uuid(table_name_with_optional_uuid_), allow_query_parameter(allow_query_parameter_)
+//     {
+//     }
 
-protected:
-    const char * getName() const override { return "compound identifier"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-    bool table_name_with_optional_uuid;
-    bool allow_query_parameter;
-};
+// protected:
+//     const char * getName() const override { return "compound identifier"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+//     bool table_name_with_optional_uuid;
+//     bool allow_query_parameter;
+// };
 
 /** *, t.*, db.table.*, COLUMNS('<regular expression>') APPLY(...) or EXCEPT(...) or REPLACE(...)
   */
@@ -146,145 +146,145 @@ protected:
   *  Syntax - two pairs of parentheses instead of one. The first is for parameters, the second for arguments.
   * For functions, the DISTINCT modifier can be specified, for example, count(DISTINCT x, y).
   */
-class ParserFunction : public IParserBase
-{
-public:
-    explicit ParserFunction(bool allow_function_parameters_ = true, bool is_table_function_ = false)
-        : allow_function_parameters(allow_function_parameters_), is_table_function(is_table_function_)
-    {
-    }
+// class ParserFunction : public IParserBase
+// {
+// public:
+//     explicit ParserFunction(bool allow_function_parameters_ = true, bool is_table_function_ = false)
+//         : allow_function_parameters(allow_function_parameters_), is_table_function(is_table_function_)
+//     {
+//     }
 
-protected:
-    const char * getName() const override { return "function"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-    bool allow_function_parameters;
-    bool is_table_function;
-};
+// protected:
+//     const char * getName() const override { return "function"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+//     bool allow_function_parameters;
+//     bool is_table_function;
+// };
 
 // A special function parser for view table function.
 // It parses an SELECT query as its argument and doesn't support getColumnName().
-class ParserTableFunctionView : public IParserBase
-{
-protected:
-    const char * getName() const override { return "function"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserTableFunctionView : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "function"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 // Window reference (the thing that goes after OVER) for window function.
 // Can be either window name or window definition.
-class ParserWindowReference : public IParserBase
-{
-    const char * getName() const override { return "window reference"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserWindowReference : public IParserBase
+// {
+//     const char * getName() const override { return "window reference"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-class ParserWindowDefinition : public IParserBase
-{
-    const char * getName() const override { return "window definition"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserWindowDefinition : public IParserBase
+// {
+//     const char * getName() const override { return "window definition"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 // The WINDOW clause of a SELECT query that defines a list of named windows.
 // Returns an ASTExpressionList of ASTWindowListElement's.
-class ParserWindowList : public IParserBase
-{
-    const char * getName() const override { return "WINDOW clause"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserWindowList : public IParserBase
+// {
+//     const char * getName() const override { return "WINDOW clause"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-class ParserCodecDeclarationList : public IParserBase
-{
-protected:
-    const char * getName() const override { return "codec declaration list"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserCodecDeclarationList : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "codec declaration list"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 /** Parse compression codec
   * CODEC(ZSTD(2))
   */
-class ParserCodec : public IParserBase
-{
-protected:
-    const char * getName() const override { return "codec"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserCodec : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "codec"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 /// Fast path of cast operator "::".
 /// It tries to read literal as text.
 /// If it fails, later operator will be transformed to function CAST.
 /// Examples: "0.1::Decimal(38, 38)", "[1, 2]::Array(UInt8)"
-class ParserCastOperator : public IParserBase
-{
-protected:
-    const char * getName() const override { return "CAST operator"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserCastOperator : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "CAST operator"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-ASTPtr createFunctionCast(const ASTPtr & expr_ast, const ASTPtr & type_ast);
-class ParserCastAsExpression : public IParserBase
-{
-protected:
-    const char * getName() const override { return "CAST AS expression"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// ASTPtr createFunctionCast(const ASTPtr & expr_ast, const ASTPtr & type_ast);
+// class ParserCastAsExpression : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "CAST AS expression"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-class ParserSubstringExpression : public IParserBase
-{
-protected:
-    const char * getName() const override { return "SUBSTRING expression"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserSubstringExpression : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "SUBSTRING expression"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-class ParserTrimExpression : public IParserBase
-{
-protected:
-    const char * getName() const override { return "TRIM expression"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserTrimExpression : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "TRIM expression"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-class ParserLeftExpression : public IParserBase
-{
-protected:
-    const char * getName() const override { return "LEFT expression"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserLeftExpression : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "LEFT expression"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-class ParserRightExpression : public IParserBase
-{
-protected:
-    const char * getName() const override { return "RIGHT expression"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserRightExpression : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "RIGHT expression"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-class ParserExtractExpression : public IParserBase
-{
-protected:
-    const char * getName() const override { return "EXTRACT expression"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserExtractExpression : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "EXTRACT expression"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-class ParserDateAddExpression : public IParserBase
-{
-protected:
-    const char * getName() const override { return "DATE_ADD expression"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserDateAddExpression : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "DATE_ADD expression"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
-class ParserDateDiffExpression : public IParserBase
-{
-protected:
-    const char * getName() const override { return "DATE_DIFF expression"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserDateDiffExpression : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "DATE_DIFF expression"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 /** NULL literal.
   */
-class ParserNull : public IParserBase
-{
-protected:
-    const char * getName() const override { return "NULL"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserNull : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "NULL"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 
 /** Numeric literal.
@@ -298,22 +298,22 @@ protected:
 
 /** Unsigned integer, used in right hand side of tuple access operator (x.1).
   */
-class ParserUnsignedInteger : public IParserBase
-{
-protected:
-    const char * getName() const override { return "unsigned integer"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserUnsignedInteger : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "unsigned integer"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 
 /** String in single quotes.
   */
-class ParserStringLiteral : public IParserBase
-{
-protected:
-    const char * getName() const override { return "string literal"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-};
+// class ParserStringLiteral : public IParserBase
+// {
+// protected:
+//     const char * getName() const override { return "string literal"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// };
 
 
 /** An array or tuple of literals.
@@ -323,19 +323,19 @@ protected:
   *  and if it did not work out (when the collection consists of complex expressions) -
   *  parse as an application of [] operator or 'tuple' function (slow path).
   */
-template <typename Collection>
-class ParserCollectionOfLiterals : public IParserBase
-{
-public:
-    ParserCollectionOfLiterals(TokenType opening_bracket_, TokenType closing_bracket_)
-        : opening_bracket(opening_bracket_), closing_bracket(closing_bracket_) {}
-protected:
-    const char * getName() const override { return "collection of literals"; }
-    bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
-private:
-    TokenType opening_bracket;
-    TokenType closing_bracket;
-};
+// template <typename Collection>
+// class ParserCollectionOfLiterals : public IParserBase
+// {
+// public:
+//     ParserCollectionOfLiterals(TokenType opening_bracket_, TokenType closing_bracket_)
+//         : opening_bracket(opening_bracket_), closing_bracket(closing_bracket_) {}
+// protected:
+//     const char * getName() const override { return "collection of literals"; }
+//     bool parseImpl(Pos & pos, ASTPtr & node, Expected & expected) override;
+// private:
+//     TokenType opening_bracket;
+//     TokenType closing_bracket;
+// };
 
 /// A tuple of literals with same type.
 // class ParserTupleOfLiterals : public IParserBase

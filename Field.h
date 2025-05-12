@@ -936,7 +936,7 @@ void writeBinary(const Array & x, WriteBuffer & buf);
 
 void writeText(const Array & x, WriteBuffer & buf);
 
-[[noreturn]] inline void writeQuoted(const Array &, WriteBuffer &) { throw Exception("Cannot write Array quoted."); }
+//[[noreturn]] inline void writeQuoted(const Array &, WriteBuffer &) { throw Exception("Cannot write Array quoted."); }
 
 void readBinary(Tuple & x, ReadBuffer & buf);
 
@@ -952,7 +952,7 @@ void readBinary(Map & x, ReadBuffer & buf);
 [[noreturn]] inline void readQuoted(Map &, ReadBuffer &) { throw Exception("Cannot read Map."); }
 void writeBinary(const Map & x, WriteBuffer & buf);
 void writeText(const Map & x, WriteBuffer & buf);
-[[noreturn]] inline void writeQuoted(const Map &, WriteBuffer &) { throw Exception("Cannot write Map quoted."); }
+//[[noreturn]] inline void writeQuoted(const Map &, WriteBuffer &) { throw Exception("Cannot write Map quoted."); }
 
 __attribute__ ((noreturn)) inline void writeText(const AggregateFunctionStateData &, WriteBuffer &)
 {
@@ -972,7 +972,7 @@ template <typename T>
 
 void writeFieldText(const Field & x, WriteBuffer & buf);
 
-[[noreturn]] inline void writeQuoted(const Tuple &, WriteBuffer &) { throw Exception("Cannot write Tuple quoted."); }
+//[[noreturn]] inline void writeQuoted(const Tuple &, WriteBuffer &) { throw Exception("Cannot write Tuple quoted."); }
 
 String toString(const Field & x);
 

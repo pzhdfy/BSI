@@ -76,56 +76,56 @@ public:
 };
 
 
-class FieldVisitorToJSONString : public StaticVisitor<String>
-{
-public:
-    // String operator() (const Null & x) const;
-    // String operator() (const NegativeInfinity &) const;
-    // String operator() (const PositiveInfinity &) const;
-    String operator() (const UInt64 & x) const;
-    // String operator() (const UInt128 & x) const;
-    // String operator() (const UInt256 & x) const;
-    String operator() (const Int64 & x) const;
-    // String operator() (const Int128 & x) const;
-    // String operator() (const Int256 & x) const;
-    // String operator() (const UUID & x) const;
-    String operator() (const Float64 & x) const;
-    String operator() (const String & x) const;
-    String operator() (const Array & x) const;
-    String operator() (const Tuple & x) const;
-    String operator() (const Map & x) const;
-    // String operator() (const DecimalField<Decimal32> & x) const;
-    // String operator() (const DecimalField<Decimal64> & x) const;
-    // String operator() (const DecimalField<Decimal128> & x) const;
-    // String operator() (const DecimalField<Decimal256> & x) const;
-    String operator() (const AggregateFunctionStateData & x) const;
-};
+// class FieldVisitorToJSONString : public StaticVisitor<String>
+// {
+// public:
+//     // String operator() (const Null & x) const;
+//     // String operator() (const NegativeInfinity &) const;
+//     // String operator() (const PositiveInfinity &) const;
+//     String operator() (const UInt64 & x) const;
+//     // String operator() (const UInt128 & x) const;
+//     // String operator() (const UInt256 & x) const;
+//     String operator() (const Int64 & x) const;
+//     // String operator() (const Int128 & x) const;
+//     // String operator() (const Int256 & x) const;
+//     // String operator() (const UUID & x) const;
+//     String operator() (const Float64 & x) const;
+//     String operator() (const String & x) const;
+//     String operator() (const Array & x) const;
+//     String operator() (const Tuple & x) const;
+//     String operator() (const Map & x) const;
+//     // String operator() (const DecimalField<Decimal32> & x) const;
+//     // String operator() (const DecimalField<Decimal64> & x) const;
+//     // String operator() (const DecimalField<Decimal128> & x) const;
+//     // String operator() (const DecimalField<Decimal256> & x) const;
+//     String operator() (const AggregateFunctionStateData & x) const;
+// };
 
 
-class FieldVisitorWriteBinary
-{
-public:
-    // void operator() (const Null & x, WriteBuffer & buf) const;
-    // void operator() (const NegativeInfinity &, WriteBuffer &) const;
-    // void operator() (const PositiveInfinity &, WriteBuffer &) const;
-    void operator() (const UInt64 & x, WriteBuffer & buf) const;
-    // void operator() (const UInt128 & x, WriteBuffer & buf) const;
-    // void operator() (const UInt256 & x, WriteBuffer & buf) const;
-    void operator() (const Int64 & x, WriteBuffer & buf) const;
-    // void operator() (const Int128 & x, WriteBuffer & buf) const;
-    // void operator() (const Int256 & x, WriteBuffer & buf) const;
-    // void operator() (const UUID & x, WriteBuffer & buf) const;
-    void operator() (const Float64 & x, WriteBuffer & buf) const;
-    void operator() (const String & x, WriteBuffer & buf) const;
-    void operator() (const Array & x, WriteBuffer & buf) const;
-    void operator() (const Tuple & x, WriteBuffer & buf) const;
-    void operator() (const Map & x, WriteBuffer & buf) const;
-    // void operator() (const DecimalField<Decimal32> & x, WriteBuffer & buf) const;
-    // void operator() (const DecimalField<Decimal64> & x, WriteBuffer & buf) const;
-    // void operator() (const DecimalField<Decimal128> & x, WriteBuffer & buf) const;
-    // void operator() (const DecimalField<Decimal256> & x, WriteBuffer & buf) const;
-    void operator() (const AggregateFunctionStateData & x, WriteBuffer & buf) const;
-};
+// class FieldVisitorWriteBinary
+// {
+// public:
+//     // void operator() (const Null & x, WriteBuffer & buf) const;
+//     // void operator() (const NegativeInfinity &, WriteBuffer &) const;
+//     // void operator() (const PositiveInfinity &, WriteBuffer &) const;
+//     void operator() (const UInt64 & x, WriteBuffer & buf) const;
+//     // void operator() (const UInt128 & x, WriteBuffer & buf) const;
+//     // void operator() (const UInt256 & x, WriteBuffer & buf) const;
+//     void operator() (const Int64 & x, WriteBuffer & buf) const;
+//     // void operator() (const Int128 & x, WriteBuffer & buf) const;
+//     // void operator() (const Int256 & x, WriteBuffer & buf) const;
+//     // void operator() (const UUID & x, WriteBuffer & buf) const;
+//     void operator() (const Float64 & x, WriteBuffer & buf) const;
+//     void operator() (const String & x, WriteBuffer & buf) const;
+//     void operator() (const Array & x, WriteBuffer & buf) const;
+//     void operator() (const Tuple & x, WriteBuffer & buf) const;
+//     void operator() (const Map & x, WriteBuffer & buf) const;
+//     // void operator() (const DecimalField<Decimal32> & x, WriteBuffer & buf) const;
+//     // void operator() (const DecimalField<Decimal64> & x, WriteBuffer & buf) const;
+//     // void operator() (const DecimalField<Decimal128> & x, WriteBuffer & buf) const;
+//     // void operator() (const DecimalField<Decimal256> & x, WriteBuffer & buf) const;
+//     void operator() (const AggregateFunctionStateData & x, WriteBuffer & buf) const;
+// };
 
 
 /** Print readable and unique text dump of field type and value. */
