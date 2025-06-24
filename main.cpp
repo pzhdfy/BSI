@@ -2,6 +2,8 @@
 #include <cstdint>
 #include <iostream>
 #include <cassert>
+#include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 #include <ranges>
@@ -45,7 +47,8 @@ void testMerge()
         bsiB.setValue(i, i);
     assert(bsiA.getExistenceBitmap().cardinality() == 99);
     assert(bsiB.getExistenceBitmap().cardinality() == 99);
-    bsiA.merge(bsiB);
+    assert(!bsiA.merge(bsiA));
+    assert(bsiA.merge(bsiB));
     for (uint64_t i = 1; i < 199; i++)
     {
         auto const & [value, found] = bsiA.getValue(i);
@@ -219,7 +222,7 @@ void testNotEQ()
         bsi.setValue(2, 1);
         bsi.setValue(3, 50);
 
-        auto result = bsi.compare(roaring::BsiOperation::NEQ, 99, 0, std::nullopt);
+        auto result = bsi.compare(roaring::BsiOperation::NEQ, 99, 0, nullptr);
         assert(2 == result->cardinality());
         std::vector<uint64_t> ans(result->cardinality());
         result->toUint64Array(ans.data());
@@ -397,12 +400,12 @@ void testSum()
     for (uint64_t i = 1; i < 100; i++)
         bsi.setValue(i, i);
 
-    roaring::Roaring64Map foundSet;
+    std::unique_ptr<roaring::Roaring64Map> foundSet = std::make_unique<roaring::Roaring64Map>();
     for (uint64_t i = 1; i < 51; ++i) {
-        foundSet.add(i);
+        foundSet->add(i);
     }
 
-    auto const & sumPair = bsi.sum(foundSet);
+    auto const & sumPair = bsi.sum(foundSet.get());
 
     uint64_t sum = 0;
     uint64_t count = 0;
@@ -440,6 +443,7 @@ void testValueZero()
 void testTopK() 
 {
     std::cout << "testTopK" << std::endl;
+    std::unique_ptr<roaring::Roaring64Map> f = std::make_unique<roaring::Roaring64Map>(roaring::Roaring64Map::bitmapOfList({5, 6}));
     
     roaring::Roaring64Bsi bsi;
     bsi.setValue(1, 3);
@@ -448,8 +452,42 @@ void testTopK()
     bsi.setValue(4, 10);
     bsi.setValue(5, 7);
 
-    auto re = bsi.topK( 2, bsi.getExistenceBitmap());
-    assert(re == roaring::Roaring64Map::bitmapOfList({4, 5}));
+    assert(*bsi.topK( 2) == roaring::Roaring64Map::bitmapOfList({4, 5}));
+    //test k=0
+    assert(*bsi.topK( 0) == roaring::Roaring64Map::bitmapOfList({}));
+    assert(*bsi.topK( 2, f.get()) == roaring::Roaring64Map::bitmapOfList({5}));
+
+    //test bsi empty
+    roaring::Roaring64Bsi bsi1;
+    assert(*bsi1.topK(1) == roaring::Roaring64Map::bitmapOfList({}));
+    assert(*bsi1.topK(1, f.get()) == roaring::Roaring64Map::bitmapOfList({}));
+    assert(*bsi1.topK(3, f.get()) == roaring::Roaring64Map::bitmapOfList({}));
+
+    //test bsi with all zero values
+    roaring::Roaring64Bsi bsi2;
+    bsi2.setValue(1, 3);
+    bsi2.setValue(2, 2);
+    bsi2.setValue(3, 2);
+    bsi2.setValue(4, 1);
+    bsi2.setValue(5, 0);
+    bsi2.setValue(6, 0);
+    assert(*bsi2.topK(5) == roaring::Roaring64Map::bitmapOfList({1, 2, 3, 4, 5}));
+
+    roaring::Roaring64Bsi bsi3;
+    bsi3.setValue(0, 7);
+    bsi3.setValue(1, 6);
+    bsi3.setValue(2, 1);
+    bsi3.setValue(3, 7);
+    bsi3.setValue(4, 0);
+    bsi3.setValue(5, 9);
+    bsi3.setValue(6, 9);
+    bsi3.setValue(7, 8);
+    bsi3.setValue(8, 9);
+    bsi3.setValue(9, 8);
+
+    assert(*bsi3.topK(4) == roaring::Roaring64Map::bitmapOfList({5, 6, 7, 8}));
+    assert(*bsi3.topK(5) == roaring::Roaring64Map::bitmapOfList({5, 6, 7, 8, 9}));
+    assert(*bsi3.topK(2) == roaring::Roaring64Map::bitmapOfList({5, 6}));
 }
 
 void testTranspose() 
@@ -463,7 +501,7 @@ void testTranspose()
     bsi.setValue(4, 8);
     bsi.setValue(5, 8);
     auto re = bsi.transpose();
-    assert(re == roaring::Roaring64Map::bitmapOfList({2, 4, 8}));
+    assert(*re == roaring::Roaring64Map::bitmapOfList({2, 4, 8}));
 }
 
 void testTransposeWithCount() 
@@ -477,10 +515,10 @@ void testTransposeWithCount()
     bsi.setValue(4, 8);
     bsi.setValue(5, 8);
     auto re = bsi.transposeWithCount();
-    assert(re.getExistenceBitmap() == roaring::Roaring64Map::bitmapOfList({2, 4, 8}));
-    assert(std::get<0>(re.getValue(2)) == 1);
-    assert(std::get<0>(re.getValue(4)) == 2);
-    assert(std::get<0>(re.getValue(8)) == 2);
+    assert(re->getExistenceBitmap() == roaring::Roaring64Map::bitmapOfList({2, 4, 8}));
+    assert(std::get<0>(re->getValue(2)) == 1);
+    assert(std::get<0>(re->getValue(4)) == 2);
+    assert(std::get<0>(re->getValue(8)) == 2);
 }
 
 void testIssue743() 

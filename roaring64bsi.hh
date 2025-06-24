@@ -17,10 +17,6 @@
 
 namespace roaring {
 
-class Roaring64Bsi;
-using Roaring64MapPtr = std::unique_ptr<Roaring64Map>;
-using Roaring64BsiPtr = std::unique_ptr<Roaring64Bsi>;
-
 enum BsiOperation {
   EQ = 0,   // equal
   NEQ = 1,  // not equal
@@ -32,31 +28,32 @@ enum BsiOperation {
   UNKNOWN = 100
 };
 
-[[nodiscard]] static std::string toUpperCase(std::string_view sv) noexcept {
-  std::string result(sv);
-  std::transform(result.begin(), result.end(), result.begin(), ::toupper);
-  return result;
-}
-
-[[nodiscard]] static BsiOperation toBsiOperation(std::string_view input) {
-  std::string sv = toUpperCase(input);
-  if (sv == "EQ") return BsiOperation::EQ;
-  if (sv == "NEQ") return BsiOperation::NEQ;
-  if (sv == "LE") return BsiOperation::LE;
-  if (sv == "LT") return BsiOperation::LT;
-  if (sv == "GE") return BsiOperation::GE;
-  if (sv == "GT") return BsiOperation::GT;
-  if (sv == "RANGE") return BsiOperation::RANGE;
-
-  return BsiOperation::UNKNOWN;
-}
-
-constexpr size_t maxBitDepth{64};
-
 class Roaring64Bsi {
- public:
-  Roaring64Bsi(uint64_t minValue = 0, uint64_t maxValue = 1)
-      : maxValue_{maxValue}, minValue_{minValue}, runOptimized_{true} {
+  using Roaring64MapPtr = std::unique_ptr<Roaring64Map>;
+  using Roaring64BsiPtr = std::unique_ptr<Roaring64Bsi>;
+
+  public:
+  [[nodiscard]] static std::string toUpperCase(std::string_view sv) noexcept {
+    std::string result(sv);
+    std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+    return result;
+  }
+
+  [[nodiscard]] static BsiOperation toBsiOperation(std::string_view input) {
+    std::string sv = toUpperCase(input);
+    if (sv == "EQ") return BsiOperation::EQ;
+    if (sv == "NEQ") return BsiOperation::NEQ;
+    if (sv == "LE") return BsiOperation::LE;
+    if (sv == "LT") return BsiOperation::LT;
+    if (sv == "GE") return BsiOperation::GE;
+    if (sv == "GT") return BsiOperation::GT;
+    if (sv == "RANGE") return BsiOperation::RANGE;
+
+    return BsiOperation::UNKNOWN;
+  }
+
+  Roaring64Bsi(uint64_t minValue = 0, uint64_t maxValue = 0)
+      : maxValue_{maxValue}, minValue_{minValue}, runOptimized_{false} {
     size_t bitDepth = getBitDepth(maxValue);
     indexBitMapVec_.resize(bitDepth);
   }
@@ -159,8 +156,11 @@ class Roaring64Bsi {
   }
 
   void setValues(const std::vector<std::tuple<uint64_t, uint64_t>>& vec) {
-    uint64_t maxValue = 0;
-    uint64_t minValue = 0;
+    if (vec.empty()) {
+      return;
+    }
+    uint64_t maxValue = std::get<1>(vec[0]);
+    uint64_t minValue = std::get<1>(vec[0]);
     for (const auto& [columnId, value] : vec) {
       minValue = std::min(minValue, value);
       maxValue = std::max(maxValue, value);
@@ -207,9 +207,13 @@ class Roaring64Bsi {
   /**
    * bsi_merge: 将两个BSI合并，要求两个BSI的ebm没有交集。
    */
-  void merge(const Roaring64Bsi& otherBsi) {
+  [[nodiscard]] bool merge(const Roaring64Bsi& otherBsi) {
     if (otherBsi.existenceBitMap_.isEmpty()) {
-      return;
+      return true;
+    }
+
+    if (!(existenceBitMap_ & otherBsi.existenceBitMap_).isEmpty()) {
+      return false; // Cannot merge if there is an intersection in existenceBitMap
     }
 
     size_t bitDepth = std::max(indexBitMapVec_.size(), otherBsi.indexBitMapVec_.size());
@@ -229,15 +233,16 @@ class Roaring64Bsi {
     runOptimized_ = runOptimized_ || otherBsi.runOptimized_;
     maxValue_ = std::max(maxValue_, otherBsi.maxValue_);
     minValue_ = std::min(minValue_, otherBsi.minValue_);
+    return true;
   }
 
   /**
    * bsi_sum: 返回BSI value之和sum以及ebm基数cardinality组成的数组。
    * 如果有第二入参roaringbitmap为非空，则先查询BSI的ebm和bytea的交集部分，再计算sum与基数。
    */
-  [[nodiscard]] auto sum(const std::optional<Roaring64Map>& foundSet = std::nullopt) const
+  [[nodiscard]] auto sum(const Roaring64Map* foundSet) const
       -> std::tuple<uint64_t, uint64_t> {
-    if (foundSet.has_value()) [[likely]] {
+    if (foundSet != nullptr) [[likely]] {
       return sumInternal(*foundSet);
     }
 
@@ -247,12 +252,16 @@ class Roaring64Bsi {
   /**
    * bsi_filter: 查询BSI的ebm和指定 foundSet 的交集部分，返回新的BSI。
    */
-  [[nodiscard]] auto filter(const Roaring64MapPtr& foundSetPtr) const -> Roaring64BsiPtr {
-    auto newBsiPtr = clone();
-
-    if (foundSetPtr == nullptr || (*foundSetPtr).isEmpty()) {
-      return newBsiPtr;
+  [[nodiscard]] auto filter(const Roaring64Map* foundSetPtr) const -> Roaring64BsiPtr {
+    if (foundSetPtr == nullptr) [[unlikely]] {
+      return clone();
     }
+
+    if (foundSetPtr->isEmpty()) {
+      return std::make_unique<Roaring64Bsi>();
+    }
+
+    auto newBsiPtr = clone();
 
     newBsiPtr->existenceBitMap_ &= *foundSetPtr;
     for (size_t i = 0; i < newBsiPtr->bitCount(); i++) {
@@ -265,7 +274,7 @@ class Roaring64Bsi {
   /**
    * bsi_exclude: 查询BSI的ebm中剔除指定用户 foundSet，返回新的BSI。
    */
-  [[nodiscard]] auto exclude(const Roaring64MapPtr& foundSetPtr) const -> Roaring64BsiPtr {
+  [[nodiscard]] auto exclude(const Roaring64Map* foundSetPtr) const -> Roaring64BsiPtr {
     auto newBsiPtr = clone();
     if (foundSetPtr == nullptr || (*foundSetPtr).isEmpty()) {
       return newBsiPtr;
@@ -282,7 +291,7 @@ class Roaring64Bsi {
   /**
    * bsi_ebm: 查询BSI的ebm数组的roaringbitmap。
    */
-  [[nodiscard]] auto getExistenceBitmap() const -> Roaring64Map { return existenceBitMap_; }
+  [[nodiscard]] auto getExistenceBitmap() const -> const Roaring64Map & { return existenceBitMap_; }
 
   [[nodiscard]] auto valueExist(uint64_t columnId) const noexcept -> bool {
     return existenceBitMap_.contains(columnId);
@@ -294,8 +303,8 @@ class Roaring64Bsi {
    * 对BSI进行比较过滤查询。支持LT/LE/GT/GE/EQ/NEQ/RANGE。
    */
   [[nodiscard]] auto compare(BsiOperation operation, uint64_t startOrValue, uint64_t end,
-                             const std::optional<Roaring64Map>& foundSet = std::nullopt) const
-      -> std::optional<Roaring64Map> {
+                             const Roaring64Map* foundSet = nullptr) const
+      -> Roaring64MapPtr {
     auto compareResult = compareUsingMinMax(operation, startOrValue, end, foundSet);
 
     if (compareResult) {
@@ -328,15 +337,15 @@ class Roaring64Bsi {
         auto right = oNeilCompare(BsiOperation::LE, end, foundSet);
 
         if (left && right) {
-          return *left & *right;
+          return std::make_unique<Roaring64Map>(*left & *right);
         }
-        return std::nullopt;
+        return nullptr;
       }
       default:
-        return std::nullopt;
+        return nullptr;
     }
 
-    return std::nullopt;
+    return nullptr;
   }
 
   /**
@@ -345,27 +354,57 @@ class Roaring64Bsi {
    * K。
    */
   [[nodiscard]] auto topK(uint64_t k,
-                          const std::optional<Roaring64Map>& foundSet = std::nullopt) const
-      -> Roaring64Map {
-    Roaring64Map candidates = foundSet.has_value() ? *foundSet : getExistenceBitmap();
-
-    if (k >= candidates.cardinality()) {
-      return candidates;
+                          const Roaring64Map* foundSet = nullptr) const
+      -> Roaring64MapPtr {
+    if (k == 0) {
+      return std::make_unique<Roaring64Map>();
     }
 
-    Roaring64Map retBitmap;
+    Roaring64MapPtr candidates;
+    if (foundSet == nullptr) {
+      candidates = std::make_unique<Roaring64Map>(getExistenceBitmap());
+    } else {
+      if (foundSet->isEmpty()) {
+        return std::make_unique<Roaring64Map>();
+      }
+      candidates = std::make_unique<Roaring64Map>(*foundSet & getExistenceBitmap());
+    }
 
-    for (size_t x = bitCount() - 1; !candidates.isEmpty() && k > 0; x--) {
-      Roaring64Map andBitmap = candidates;
+    if (k >= candidates->cardinality()) {
+        return candidates;
+    }
+
+    //now: k >0 && k< candidates->cardinality()
+    Roaring64MapPtr retBitmap = std::make_unique<Roaring64Map>();
+    // keep target K value
+    size_t originalTargetTopK = k;
+
+    for (int32_t x = bitCount() - 1; x >= 0 && !candidates->isEmpty() && k > 0; x--) {
+      Roaring64Map andBitmap = *candidates;
       andBitmap &= indexBitMapVec_[x];
       uint64_t cardinality = andBitmap.cardinality();
 
       if (cardinality > k) {
-        candidates &= indexBitMapVec_[x];
+        *candidates &= indexBitMapVec_[x];
       } else {
-        retBitmap |= andBitmap;
-        candidates -= indexBitMapVec_[x];
+        *retBitmap |= andBitmap;
+        *candidates -= indexBitMapVec_[x];
         k -= cardinality;
+      }
+    }
+
+    // check whether we get enough items in 'retBitmap'
+    size_t reCardinality = retBitmap->cardinality();
+    size_t candidatesCardinality = candidates->cardinality();
+    if (reCardinality < originalTargetTopK) {
+      // 'retBitmap' has not enough items, pick some items from candidates, then add to retBitmap.
+      size_t needCandidatesCnt = originalTargetTopK - reCardinality;
+      for(const auto it : *candidates) {
+        if (needCandidatesCnt-- > 0) {
+          retBitmap->add(it);
+        } else {
+          break;
+        }
       }
     }
     return retBitmap;
@@ -375,20 +414,16 @@ class Roaring64Bsi {
    * bsi_transpose: 返回BSI的value转置结果，即去重后组成的roaringbitmap。
    * 如果有第二入参roaringbitmap类型序列化的bytea，则先查询BSI的ebm和bytea的交集部分，再计算转置。
    */
-  [[nodiscard]] auto transpose(const std::optional<Roaring64Map>& foundSet = std::nullopt) const
-      -> Roaring64Map {
-    Roaring64Map fixedFoundSet{existenceBitMap_};
+  [[nodiscard]] auto transpose(const Roaring64Map* foundSet = nullptr) const
+      -> Roaring64MapPtr {
+    const Roaring64Map& fixedFoundSet = foundSet != nullptr ? existenceBitMap_ & *foundSet : existenceBitMap_;
 
-    if (foundSet.has_value()) {
-      fixedFoundSet &= foundSet.value();
-    }
-
-    Roaring64Map retBitmap;
+    Roaring64MapPtr retBitmap = std::make_unique<Roaring64Map>();
 
     std::for_each(fixedFoundSet.begin(), fixedFoundSet.end(), [&retBitmap, this](auto const it) {
-      auto [value, exists] = getValue(it);
+      const auto & [value, exists] = getValue(it);
 
-      retBitmap.add(value);
+      retBitmap->add(value);
     });
 
     return retBitmap;
@@ -399,22 +434,19 @@ class Roaring64Bsi {
    * 如果有第二入参roaringbitmap类型序列化的bytea，则先查询BSI的ebm和bytea的交集部分，再计算转置并统计。
    */
   [[nodiscard]] auto transposeWithCount(
-      const std::optional<Roaring64Map>& foundSet = std::nullopt) const -> Roaring64Bsi {
-    Roaring64Map fixedFoundSet{existenceBitMap_};
+      const Roaring64Map* foundSet = nullptr) const -> Roaring64BsiPtr {
+    const Roaring64Map& fixedFoundSet = foundSet != nullptr ? existenceBitMap_ & *foundSet : existenceBitMap_;
 
-    if (foundSet.has_value()) {
-      fixedFoundSet &= foundSet.value();
-    }
-    Roaring64Bsi retBsi;
+    Roaring64BsiPtr retBsi = std::make_unique<Roaring64Bsi>();
 
     std::for_each(fixedFoundSet.begin(), fixedFoundSet.end(), [&retBsi, this](auto const it) {
-      auto [value, exists] = getValue(it);
+      const auto& [value, exists] = getValue(it);
+      const auto& [reValue, reExists] = retBsi->getValue(value);
 
-      if (retBsi.valueExist(value)) {
-        auto [reValue, reExists] = retBsi.getValue(value);
-        retBsi.setValue(value, reValue + 1);
+      if (reExists) {
+        retBsi->setValue(value, reValue + 1);
       } else {
-        retBsi.setValue(value, 1);
+        retBsi->setValue(value, 1);
       }
     });
 
@@ -522,7 +554,7 @@ class Roaring64Bsi {
     indexBitMapVec_.clear();
 
     minValue_ = 0;
-    maxValue_ = 1;
+    maxValue_ = 0;
     runOptimized_ = false;
   }
 
@@ -530,12 +562,12 @@ class Roaring64Bsi {
     if (existenceBitMap_.isEmpty()) {
       minValue_ = minValue;
       maxValue_ = maxValue;
-      grow(getBitDepth(maxValue));
+      grow(std::max(getBitDepth(maxValue), 1UL));
     } else if (minValue_ > minValue) {
       minValue_ = minValue;
     } else if (maxValue_ < maxValue) {
       maxValue_ = maxValue;
-      grow(getBitDepth(maxValue));
+      grow(std::max(getBitDepth(maxValue), 1UL));
     }
   }
 
@@ -557,8 +589,7 @@ class Roaring64Bsi {
       return;
     }
     indexBitMapVec_.resize(newBitDepth);
-    for (size_t i = newBitDepth - 1; i >= oldBitDepth; i--) {
-      indexBitMapVec_[i] = Roaring64Map();
+    for (size_t i = oldBitDepth; i < newBitDepth; i++) {
       if (runOptimized_) {
         indexBitMapVec_[i].runOptimize();
       }
@@ -621,6 +652,9 @@ class Roaring64Bsi {
 
   [[nodiscard]] auto sumInternal(const Roaring64Map& foundSet) const
       -> std::tuple<uint64_t, uint64_t> {
+    if (foundSet.isEmpty()) {
+      return std::make_tuple(0, 0);
+    }
     uint64_t count = foundSet.cardinality();
     uint64_t sum = 0;
     for (size_t i = 0; i < bitCount(); i++) {
@@ -630,11 +664,11 @@ class Roaring64Bsi {
   }
 
   [[nodiscard]] auto compareUsingMinMax(BsiOperation operation, uint64_t startOrValue, uint64_t end,
-                                        const std::optional<Roaring64Map>& foundSet =
-                                            std::nullopt) const -> std::optional<Roaring64Map> {
-    auto allBitmap = foundSet.has_value() ? existenceBitMap_ & foundSet.value() : existenceBitMap_;
+                                        const Roaring64Map* foundSet =
+                                            nullptr) const -> Roaring64MapPtr {
+    Roaring64MapPtr allBitmap = std::make_unique<Roaring64Map>(foundSet != nullptr ? existenceBitMap_ & *foundSet : existenceBitMap_);
 
-    Roaring64Map emptyBitmap;
+    Roaring64MapPtr emptyBitmap = std::make_unique<Roaring64Map>();
 
     switch (operation) {
       case LT:
@@ -688,65 +722,67 @@ class Roaring64Bsi {
         }
         break;
       default:
-        return std::nullopt;
+        return nullptr;
     }
 
-    return std::nullopt;
+    return nullptr;
   }
 
   [[nodiscard]] auto oNeilCompare(BsiOperation operation, uint64_t predicate,
-                                  const std::optional<Roaring64Map>& foundSet = std::nullopt) const
-      -> std::optional<Roaring64Map> {
-    auto fixedFoundSet = foundSet.has_value() ? foundSet.value() : existenceBitMap_;
+                                  const Roaring64Map* foundSet = nullptr) const
+      -> Roaring64MapPtr {
+    const auto & fixedFoundSet = foundSet != nullptr ? *foundSet : existenceBitMap_;
 
     Roaring64Map gtBitMap;
     Roaring64Map ltBitMap;
-    Roaring64Map eqBitMap = existenceBitMap_;
+    Roaring64MapPtr eqBitMap = std::make_unique<Roaring64Map>(existenceBitMap_);
 
     for (int32_t i = bitCount() - 1; i >= 0; i--) {
       auto bit = (int32_t)((predicate >> i) & 1);
       if (bit == 1) {
-        ltBitMap |= (eqBitMap - indexBitMapVec_[i]);
-        eqBitMap &= indexBitMapVec_[i];
+        ltBitMap |= (*eqBitMap - indexBitMapVec_[i]);
+        *eqBitMap &= indexBitMapVec_[i];
       } else {
-        gtBitMap |= (eqBitMap & indexBitMapVec_[i]);
-        eqBitMap -= indexBitMapVec_[i];
+        gtBitMap |= (*eqBitMap & indexBitMapVec_[i]);
+        *eqBitMap -= indexBitMapVec_[i];
       }
     }
 
-    eqBitMap &= fixedFoundSet;
+    *eqBitMap &= fixedFoundSet;
     switch (operation) {
       case EQ:
         return eqBitMap;
       case NEQ:
-        return fixedFoundSet - eqBitMap;
+        return std::make_unique<Roaring64Map>(fixedFoundSet - *eqBitMap);
       case GT:
-        return gtBitMap & fixedFoundSet;
+        return std::make_unique<Roaring64Map>(gtBitMap & fixedFoundSet);
       case LT:
-        return ltBitMap & fixedFoundSet;
+        return std::make_unique<Roaring64Map>(ltBitMap & fixedFoundSet);
       case LE:
-        return (ltBitMap | eqBitMap) & fixedFoundSet;
+        return std::make_unique<Roaring64Map>((ltBitMap | *eqBitMap) & fixedFoundSet);
       case GE:
-        return (gtBitMap | eqBitMap) & fixedFoundSet;
+        return std::make_unique<Roaring64Map>((gtBitMap | *eqBitMap) & fixedFoundSet);
       default:
-        return std::nullopt;
+        return nullptr;
     }
-    return std::nullopt;
+    return nullptr;
   }
 
   static auto leadingZeroes(uint64_t value) -> size_t {
-    return (value < 1) ? 1 : __builtin_clzll(value);
+    return (value < 1) ? maxBitDepth : __builtin_clzll(value);
   }
 
   static auto getBitDepth(uint64_t value) -> size_t { return maxBitDepth - leadingZeroes(value); }
 
  private:
-  uint64_t maxValue_{1};
+  uint64_t maxValue_{0};
   uint64_t minValue_{0};
-  bool runOptimized_{true};
+  bool runOptimized_{false};
 
   std::vector<Roaring64Map> indexBitMapVec_;
   Roaring64Map existenceBitMap_;
+
+  constexpr static size_t maxBitDepth{64};
 };
 
 }  // namespace roaring
