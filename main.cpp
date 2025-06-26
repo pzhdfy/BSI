@@ -14,11 +14,13 @@
 void setup(roaring::Roaring64Bsi & bsi)
 {
     std::unordered_map<uint64_t, uint64_t> testDataSet;
-    for (uint64_t i = 1; i < 100; i++)
+    for (uint64_t i = 1; i < 100; i++) {
         testDataSet.emplace(i, i);
+    }
 
-    for(const auto& [key, value] : testDataSet)
+    for(const auto& [key, value] : testDataSet) {
         bsi.setValue(key, value);
+    }
 }
 void testSetAndGet()
 {
@@ -40,11 +42,13 @@ void testMerge()
     std::cout << "testMerge" << std::endl;
 
     roaring::Roaring64Bsi bsiA;
-    for (uint64_t i = 1; i < 100; i++)
+    for (uint64_t i = 1; i < 100; i++) {
         bsiA.setValue(i, i);
+    }
     roaring::Roaring64Bsi bsiB;
-    for (uint64_t i = 100; i < 199; i++)
+    for (uint64_t i = 100; i < 199; i++) {
         bsiB.setValue(i, i);
+    }
     assert(bsiA.getExistenceBitmap().cardinality() == 99);
     assert(bsiB.getExistenceBitmap().cardinality() == 99);
     assert(!bsiA.merge(bsiA));
@@ -64,12 +68,14 @@ void testClone()
     roaring::Roaring64Bsi bsi(1, 99);
 
     std::unordered_map<uint64_t, uint64_t> testDataSet;
-    for (uint64_t i = 1; i < 100; i++)
+    for (uint64_t i = 1; i < 100; i++) {
         testDataSet.emplace(i, i);
+    }
 
     std::vector<std::tuple<uint64_t, uint64_t>> collect;
-    for(const auto& [key, value] : testDataSet)
+    for(const auto& [key, value] : testDataSet) {
         collect.emplace_back(key, value);
+    }
 
     bsi.setValues(collect);
 
@@ -89,11 +95,13 @@ void testAdd()
     std::cout << "testAdd" << std::endl;
 
     roaring::Roaring64Bsi bsiA;
-    for (uint64_t i = 1; i < 100; i++)
+    for (uint64_t i = 1; i < 100; i++) {
         bsiA.setValue(i, i);
+    }
     roaring::Roaring64Bsi bsiB;
-    for (uint64_t i = 1; i < 120; i++)
+    for (uint64_t i = 1; i < 120; i++) {
         bsiB.setValue(i, i);
+    }
 
     bsiA.add(bsiB);
 
@@ -101,10 +109,12 @@ void testAdd()
     {
         auto const & [value, found] = bsiA.getValue(i);
         assert(found);
-        if (i < 100)
+        if (i < 100) {
             assert(value == i * 2);
-        else
+        }
+        else {
             assert(value == i);
+        }
     }
 }
 
@@ -113,11 +123,13 @@ void testAddAndEvaluate()
     std::cout << "testAddAndEvaluate" << std::endl;
 
     roaring::Roaring64Bsi bsiA;
-    for (uint64_t i = 1; i < 100; i++)
+    for (uint64_t i = 1; i < 100; i++) {
         bsiA.setValue(i, i);
+    }
     roaring::Roaring64Bsi bsiB;
-    for (uint64_t i = 1; i < 120; i++)
+    for (uint64_t i = 1; i < 120; i++) {
         bsiB.setValue(120 - i, i);
+    }
 
     bsiA.add(bsiB);
 
@@ -148,8 +160,9 @@ void TestIO4Stream()
     std::cout << "TestIO4Stream" << std::endl;
 
     roaring::Roaring64Bsi bsi(1, 99);
-    for (uint64_t i = 1; i < 100; i++)
+    for (uint64_t i = 1; i < 100; i++) {
         bsi.setValue(i, i);
+    }
    
     std::unique_ptr<char[]> buffer;
     size_t size = bsi.serializeBuffer(buffer);
@@ -173,8 +186,9 @@ void testIO4Buffer()
     std::cout << "testIO4Buffer" << std::endl;
     
     roaring::Roaring64Bsi bsi(1, 99);
-    for (uint64_t i = 1; i < 100; i++)
+    for (uint64_t i = 1; i < 100; i++) {
         bsi.setValue(i, i);
+    }
 
     std::vector<char> buffer(bsi.serializedSizeInBytes());
     bsi.serialize(buffer.data());
@@ -397,8 +411,9 @@ void testSum()
     std::cout << "testSum" << std::endl;
     
     roaring::Roaring64Bsi bsi(1, 99);
-    for (uint64_t i = 1; i < 100; i++)
+    for (uint64_t i = 1; i < 100; i++) {
         bsi.setValue(i, i);
+    }
 
     std::unique_ptr<roaring::Roaring64Map> foundSet = std::make_unique<roaring::Roaring64Map>();
     for (uint64_t i = 1; i < 51; ++i) {
@@ -542,8 +557,9 @@ void testIssue753()
 {
     std::cout << "testIssue753" << std::endl;
     roaring::Roaring64Bsi bsi;
-    for (uint64_t i = 1; i < 100; i++)
+    for (uint64_t i = 1; i < 100; i++) {
         bsi.setValue(i, i);
+    }
     
 
     /*assert(bsi.compare(roaring::BsiOperation::RANGE, -4, 56)->cardinality() == 56);

@@ -41,19 +41,19 @@ class Roaring64Bsi {
 
   [[nodiscard]] static BsiOperation toBsiOperation(std::string_view input) {
     std::string sv = toUpperCase(input);
-    if (sv == "EQ") return BsiOperation::EQ;
-    if (sv == "NEQ") return BsiOperation::NEQ;
-    if (sv == "LE") return BsiOperation::LE;
-    if (sv == "LT") return BsiOperation::LT;
-    if (sv == "GE") return BsiOperation::GE;
-    if (sv == "GT") return BsiOperation::GT;
-    if (sv == "RANGE") return BsiOperation::RANGE;
+    if (sv == "EQ") { return BsiOperation::EQ; }
+    if (sv == "NEQ") { return BsiOperation::NEQ; }
+    if (sv == "LE") { return BsiOperation::LE; }
+    if (sv == "LT") { return BsiOperation::LT; }
+    if (sv == "GE") { return BsiOperation::GE; }
+    if (sv == "GT") { return BsiOperation::GT; }
+    if (sv == "RANGE") { return BsiOperation::RANGE; }
 
     return BsiOperation::UNKNOWN;
   }
 
   Roaring64Bsi(uint64_t minValue = 0, uint64_t maxValue = 0)
-      : maxValue_{maxValue}, minValue_{minValue}, runOptimized_{false} {
+      : maxValue_{maxValue}, minValue_{minValue} {
     size_t bitDepth = getBitDepth(maxValue);
     indexBitMapVec_.resize(bitDepth);
   }
@@ -127,7 +127,7 @@ class Roaring64Bsi {
     return *this;
   }
 
-  ~Roaring64Bsi() {}
+  ~Roaring64Bsi() = default;
 
   /**
    * bsi_show: 将BSI按键值展开，并展示前integer个键值对。
@@ -542,7 +542,7 @@ class Roaring64Bsi {
     runOptimized_ = true;
   }
 
-  auto hasRunCompression() const -> bool const { return runOptimized_; }
+  auto hasRunCompression() const -> bool { return runOptimized_; }
 
   [[nodiscard]] auto clone() const -> Roaring64BsiPtr {
     return std::make_unique<Roaring64Bsi>(*this);
@@ -774,7 +774,6 @@ class Roaring64Bsi {
 
   static auto getBitDepth(uint64_t value) -> size_t { return maxBitDepth - leadingZeroes(value); }
 
- private:
   uint64_t maxValue_{0};
   uint64_t minValue_{0};
   bool runOptimized_{false};
