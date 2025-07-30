@@ -113,11 +113,12 @@ public:
             for (auto& e : other.indexBitMapVec_) {
                 indexBitMapVec_.emplace_back(std::move(e));
             }
-            other.clear();
 
             this->maxValue_ = other.maxValue_;
             this->minValue_ = other.minValue_;
             this->runOptimized_ = other.runOptimized_;
+
+            other.clear();
         }
     }
 
@@ -132,11 +133,11 @@ public:
             for (auto& e : other.indexBitMapVec_) {
                 indexBitMapVec_.emplace_back(std::move(e));
             }
-            other.clear();
 
             this->maxValue_ = other.maxValue_;
             this->minValue_ = other.minValue_;
             this->runOptimized_ = other.runOptimized_;
+            other.clear();
         }
 
         return *this;
